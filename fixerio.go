@@ -1,16 +1,16 @@
 /*
 	Package Fixerio provides a simple interface to the
 	fixer.io API, a service for currency exchange rates.
- */
+*/
 package fixerio
 
 import (
-	"strings"
-	"net/http"
-	"encoding/json"
-	"time"
 	"bytes"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"strings"
+	"time"
 )
 
 // Holds the request parameters.
@@ -19,18 +19,20 @@ type Request struct {
 	protocol string
 	date     string
 	symbols  []string
+	apiKey   string
 }
 
 // JSON response object.
 type Response struct {
 	Base  string `json:"base"`
 	Date  string `json:"date"`
-	Rates rates `json:"rates"`
+	Rates rates  `json:"rates"`
 }
 
 type rates map[string]float32
 
 var baseUrl = "api.fixer.io"
+var authBaseUrl = "data.fixer.io/api"
 
 // Initializes fixerio.
 func New() *Request {
@@ -39,7 +41,12 @@ func New() *Request {
 		protocol: "https",
 		date:     "",
 		symbols:  make([]string, 0),
+		apiKey:   "",
 	}
+}
+
+func (f *Request) APIKey(key string) {
+	f.apiKey = key
 }
 
 // Sets base currency.
@@ -85,7 +92,11 @@ func (f *Request) GetUrl() string {
 
 	url.WriteString(f.protocol)
 	url.WriteString("://")
-	url.WriteString(baseUrl)
+	if f.apiKey == "" {
+		url.WriteString(baseUrl)
+	} else {
+		url.WriteString(authBaseUrl)
+	}
 	url.WriteString("/")
 
 	if f.date == "" {
@@ -100,6 +111,11 @@ func (f *Request) GetUrl() string {
 	if len(f.symbols) >= 1 {
 		url.WriteString("&symbols=")
 		url.WriteString(strings.Join(f.symbols, ","))
+	}
+
+	if f.apiKey != "" {
+		url.WriteString("&access_key=")
+		url.WriteString(f.apiKey)
 	}
 
 	return url.String()
